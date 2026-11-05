@@ -1,0 +1,406 @@
+openapi: 3.0.3
+info:
+  title: Pizza Marketplace API
+  version: 0.1.0
+  description: |
+    API de commande de pizzas multi-enseignes (Da Michele, Rossopomodoro, Pizzium).
+    Flow : **Panier → Validation → Paiement → Suivi**.
+
+    Ce fichier est le **contrat** de l'API : on le met à jour dans la même PR que le code.
+    Les routes marquées `[TODO]` ne sont pas encore implémentées.
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: Health
+  - name: Brands
+    description: Story 1 - Enseignes et pizzas
+  - name: Carts
+    description: Stories 2, 6, 8 - Panier, prix, undo/redo, pizza perso
+  - name: Orders
+    description: Stories 3, 4, 5, 9 - Validation, paiement, suivi, historique
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Vérifie que l'API répond
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+
+  /brands:
+    get:
+      tags: [Brands]
+      summary: '[TODO] Lister les enseignes'
+      responses:
+        '200':
+          description: Liste des enseignes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Brand' }
+
+  /brands/{brandId}/pizzas:
+    get:
+      tags: [Brands]
+      summary: "[TODO] Menu d'une enseigne (prix calculés selon ses règles)"
+      parameters:
+        - $ref: '#/components/parameters/BrandId'
+      responses:
+        '200':
+          description: Pizzas de l'enseigne
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Pizza' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /carts:
+    post:
+      tags: [Carts]
+      summary: '[TODO] Créer un panier pour une enseigne'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customerId, brandId]
+              properties:
+                customerId: { type: string }
+                brandId: { type: string, example: da-michele }
+      responses:
+        '201':
+          description: Panier créé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+
+  /carts/{cartId}:
+    get:
+      tags: [Carts]
+      summary: '[TODO] Consulter un panier (avec total selon la stratégie de prix)'
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+        - name: pricing
+          in: query
+          schema: { $ref: '#/components/schemas/PricingStrategy' }
+        - name: promoCode
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Panier
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /carts/{cartId}/items:
+    post:
+      tags: [Carts]
+      summary: '[TODO] Ajouter une pizza du menu ou une pizza personnalisée'
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/MenuItemInput'
+                - $ref: '#/components/schemas/CustomPizzaInput'
+      responses:
+        '200':
+          description: Panier mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+
+  /carts/{cartId}/items/{itemId}:
+    patch:
+      tags: [Carts]
+      summary: "[TODO] Changer la taille d'une pizza"
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                size: { $ref: '#/components/schemas/Size' }
+      responses:
+        '200':
+          description: Panier mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+    delete:
+      tags: [Carts]
+      summary: '[TODO] Retirer une pizza du panier'
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Panier mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+
+  /carts/{cartId}/undo:
+    post:
+      tags: [Carts]
+      summary: '[TODO] Annuler la dernière modification (max 10)'
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+      responses:
+        '200':
+          description: Panier restauré
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+
+  /carts/{cartId}/redo:
+    post:
+      tags: [Carts]
+      summary: '[TODO] Rétablir la dernière annulation'
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+      responses:
+        '200':
+          description: Panier restauré
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+
+  /orders:
+    post:
+      tags: [Orders]
+      summary: '[TODO] Valider un panier et créer la commande'
+      description: Règles chaînées (panier non vide, minimum 15€, zone, enseigne ouverte, stock) ; première erreur = stop.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cartId, deliveryAddress]
+              properties:
+                cartId: { type: string }
+                deliveryAddress: { type: string }
+                pricing: { $ref: '#/components/schemas/PricingStrategy' }
+                promoCode: { type: string }
+      responses:
+        '201':
+          description: Commande créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /orders/{orderId}:
+    get:
+      tags: [Orders]
+      summary: '[TODO] Suivre une commande'
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Commande
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /orders/{orderId}/payment:
+    post:
+      tags: [Orders]
+      summary: '[TODO] Payer la commande'
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method]
+              properties:
+                method: { type: string, enum: [card, paypal, crypto] }
+      responses:
+        '200':
+          description: Paiement accepté
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+
+  /orders/{orderId}/status:
+    patch:
+      tags: [Orders]
+      summary: '[TODO] Changer le statut (déclenche les notifications)'
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: '#/components/schemas/OrderStatus' }
+      responses:
+        '200':
+          description: Statut mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+
+  /customers/{customerId}/orders:
+    get:
+      tags: [Orders]
+      summary: '[TODO] Historique des commandes (plus récente en premier)'
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/OrderStatus' }
+      responses:
+        '200':
+          description: Commandes du client
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Order' }
+
+components:
+  parameters:
+    BrandId:
+      name: brandId
+      in: path
+      required: true
+      schema: { type: string, example: da-michele }
+    CartId:
+      name: cartId
+      in: path
+      required: true
+      schema: { type: string }
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ValidationError:
+      description: Commande refusée par une règle de validation
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Size:
+      type: string
+      enum: [S, M, L, XL]
+    PricingStrategy:
+      type: string
+      enum: [standard, happy-hour, promo-code, loyalty]
+    OrderStatus:
+      type: string
+      enum: [pending, validated, paid, preparing, delivering, delivered, cancelled]
+    Ingredient:
+      type: string
+      enum: [mozzarella, pepperoni, mushrooms, ham, olives, gorgonzola]
+    Brand:
+      type: object
+      properties:
+        id: { type: string, example: da-michele }
+        name: { type: string, example: Da Michele }
+        isOpen: { type: boolean }
+    Pizza:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string, example: Margherita }
+        basePrice: { type: number, example: 9 }
+        sizes:
+          type: array
+          items: { $ref: '#/components/schemas/Size' }
+    MenuItemInput:
+      type: object
+      required: [pizzaId, size]
+      properties:
+        pizzaId: { type: string }
+        size: { $ref: '#/components/schemas/Size' }
+    CustomPizzaInput:
+      type: object
+      required: [base, size, ingredients]
+      properties:
+        base: { type: string, enum: [tomato, cream] }
+        size: { $ref: '#/components/schemas/Size' }
+        ingredients:
+          type: array
+          items: { $ref: '#/components/schemas/Ingredient' }
+    CartItem:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        size: { $ref: '#/components/schemas/Size' }
+        unitPrice: { type: number }
+    Cart:
+      type: object
+      properties:
+        id: { type: string }
+        customerId: { type: string }
+        brandId: { type: string }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CartItem' }
+        total: { type: number }
+        canUndo: { type: boolean }
+        canRedo: { type: boolean }
+    Order:
+      type: object
+      properties:
+        id: { type: string }
+        customerId: { type: string }
+        brandId: { type: string }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CartItem' }
+        total: { type: number }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        createdAt: { type: string, format: date-time }
+    Error:
+      type: object
+      properties:
+        error: { type: string, example: MINIMUM_AMOUNT_NOT_REACHED }
+        message: { type: string, example: Le montant minimum de commande est de 15€ }
