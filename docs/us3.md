@@ -36,7 +36,20 @@ Les vérifications simples passent d'abord, le stock en dernier.
 - `src/application/validation/` : `ValidateOrderUseCase` et ses ports (`ICartFinder`,
   `IBrandFinder`, `IOrderTotalCalculator`)
 - `src/infrastructure/http/routes/order-validation.routes.ts` : `POST /orders`
-- `tests/validation/` : une suite par règle, la chaîne, la route
+- `src/infrastructure/validation/` : zone de livraison (codes postaux par enseigne) et stock
+  (quantité par enseigne et par pizza) en mémoire
+- `tests/validation/` : une suite par règle, la chaîne, la route, les versions en mémoire
+
+## Reste à faire
+
+La route n'est pas encore branchée dans `app.ts` : elle a besoin du stockage des paniers, de la
+recherche d'enseigne (story 1), des stratégies de prix (story 2) et du stockage des commandes
+(story 9). Une fois ces stories mergées dans `dev`, il suffira d'assembler la route et d'ajouter
+dans `app.ts` :
+
+```ts
+app.use('/orders', orderValidationRouter);
+```
 
 ## Décisions
 
