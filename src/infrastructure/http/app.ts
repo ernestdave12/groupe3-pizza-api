@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { loadOpenApiSpec } from './openapi';
 import { healthRouter } from './routes/health.routes';
+import { brandsRouter } from './routes/brands.routes';
 
 /**
  * Construit l'application Express (sans l'écouter) :
@@ -18,6 +19,7 @@ export function createApp(): Express {
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(spec));
 
   app.use('/health', healthRouter);
+  app.use('/brands', brandsRouter);
 
   return app;
 }

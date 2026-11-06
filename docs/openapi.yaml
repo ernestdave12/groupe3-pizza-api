@@ -37,7 +37,7 @@ paths:
   /brands:
     get:
       tags: [Brands]
-      summary: '[TODO] Lister les enseignes'
+      summary: Lister les enseignes
       responses:
         '200':
           description: Liste des enseignes
@@ -45,12 +45,13 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Brand' }
+                items:
+                  $ref: '#/components/schemas/Brand'
 
   /brands/{brandId}/pizzas:
     get:
       tags: [Brands]
-      summary: "[TODO] Menu d'une enseigne (prix calculés selon ses règles)"
+      summary: Menu d'une enseigne avec ses prix par taille
       parameters:
         - $ref: '#/components/parameters/BrandId'
       responses:
@@ -60,8 +61,10 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Pizza' }
-        '404': { $ref: '#/components/responses/NotFound' }
+                items:
+                  $ref: '#/components/schemas/Pizza'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /carts:
     post:
