@@ -6,6 +6,8 @@ export interface ICart {
   readonly id: string;
   readonly customerId: string;
   readonly brandId: string;
+  readonly canUndo: boolean;
+  readonly canRedo: boolean;
 
   /** Copie des lignes : on ne peut pas modifier le panier de l'extérieur. */
   getItems(): readonly ICartItem[];
@@ -16,4 +18,7 @@ export interface ICart {
   changeSize(itemId: string, size: Size, unitPrice: number): void;
   /** Somme des prix unitaires, avant réduction. */
   getSubtotal(): number;
+  // Renvoie false si aucune étape n'est disponible, sans modifier le panier.
+  undo(): boolean;
+  redo(): boolean;
 }
